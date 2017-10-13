@@ -1,0 +1,23 @@
+.grid-table,.grid-table *{padding:0;margin:0;}
+.grid-table>caption{
+	width:100%;height:40px;
+	background-color:#0094ff;
+	text-align:left;
+}
+.grid-table>caption>h2{
+	color:white;height:40px;line-height:40px;
+	margin-left:15px;
+}
+.grid-table>caption>a{
+	float:right;
+	color:white;
+	margin-right:15px;
+	margin-top:10px;
+}
+.grid-table,.grid-table th,.grid-table td{
+	border:1px solid #0094ff;
+	border-collapse:collapse;
+}
+.grid-table th,.grid-table td{
+	padding:8px 15px;
+}	

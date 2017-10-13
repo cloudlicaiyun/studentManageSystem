@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Vue+Vue-resourse+Vuex Demo</title>
+	<link rel="stylesheet" href="css/index.css">
+	<link rel="stylesheet" href="components/popwindow/popwindow.css">
+	<link rel="stylesheet" href="components/alert/alert.css">
+	<link rel="stylesheet" href="components/edit/edit.css">
+	<link rel="stylesheet" href="components/grid/grid.css">
+	<link rel="stylesheet" href="components/menu/menu.css">
+	<link rel="stylesheet" href="components/tabs/tabs.css">
+</head>
+<body>
+	<div id="app">
+		<div class="header">
+			<h1>传习深圳实训基地vue案例</h1>
+		</div>
+		<div class="content">
+			<div class="left">
+				<mymenu></mymenu>
+			</div>
+			<div class="right">
+				<tabs></tabs>
+			</div>
+		</div>
+		<div class="footer">版权所有 &copy; 传习教育:李文奇</div>
+		<alert></alert>
+	</div>
+	<!-- vue所有组件模板引入 -->
+	<!-- popwindow组件 -->
+	<template id='popwindow'>
+		<transition name="fade">
+			<div class="overlay" v-show="isShow">
+				<div class='content'>
+					<!-- 分发内容 -->
+					<slot name="header"></slot>
+					<slot name="body"></slot>
+					<slot name="footer"></slot>
+				</div>
+			</div>
+		</transition>
+	</template>
+	<!-- alert组件 -->
+	<template id='alert'>
+		<popwindow :is-show='$store.state.alert.isShow'>
+			<div slot="header" class='alert-header'>
+				<span @click='$store.commit("alert/close")'>×</span>
+				<h2>提示:</h2>
+			</div>
+			<div slot="body" class="alert-body">
+				<h2 v-text="$store.state.alert.msg"></h2>
+			</div>
+			<div slot="footer" class='alert-footer'>
+				<input type="button" value="确定" @click='$store.commit("alert/close")'>
+			</div>
+		</popwindow>
+	</template>
+	<!-- edit组件 -->
+	<template id='edit'>
+		<popwindow :is-show="state.editShow">
+			<div slot='header' class='edit-header'>
+				<span @click='$store.commit("grid/endEdit",gridName)'>×</span>
+				<h2 v-text="title"></h2>
+			</div>
+			<div slot='body' class='edit-body'>
+				<ul>
+					<li v-for="value in state.fields">
+						<label :for="'m_'+value.name" v-text="value.name+':'"></label>
+						<select v-if="value.type=='select'" :id="'m_'+value.name" v-model="state.editItem[value.name]">
+							<option v-for="opt in value.options" :value="opt.value" v-text="opt.name">
+							</option>
+						</select>
+						<template v-else-if="value.type=='radio'">
+							<template v-for="opt in value.options">
+								<input type="radio" :name="value.name" :value="opt.value" v-model="state.editItem[value.name]">
+								<span v-text="opt.name"></span>
+							</template>
+						</template>
+						<input v-else type="text" :id="'m_'+value.name" v-model="state.editItem[value.name]" :disabled="value.name==state.key&&state.addOrUpdate=='update'">
+					</li>
+				</ul>
+			</div>
+			<div slot='footer' class='edit-footer'>
+				<input type="button" value="保存" @click="editComplete">
+				<input type="button" value="取消" @click="$store.commit('grid/endEdit',gridName)">
+			</div>
+		</popwindow>
+	</template>
+	<!-- grid组件 -->
+	<template id="grid">
+		<div>
+			<table class='grid-table'>
+				<caption>
+					<a v-if="state.isEdit" href="#" @click="beginEdit()">Add</a>
+					<h2 v-text="state.title"></h2>
+				</caption>
+				 <thead>
+					<th v-for="item in state.headers" v-text="item"></th>
+					<th v-if="state.isEdit">operation</th>
+				</thead>
+				<tbody>
+					<tr v-for="item in items">
+						<td v-for="p in state.fields" v-if="p.name!=state.key" v-text="item[p.name]"></td>
+						<td v-else><a href="#" v-text="item[p.name]" @click="beginEdit(item[p.name])"></a></td>
+						<td v-if="state.isEdit"><a href="#" @click="del(item[state.key])">del</a></td>
+					</tr>
+				</tbody>
+			</table> 
+			<edit v-if="state.isEdit" @edit-complete="completeEdit" :grid-name='gridName'></edit>
+		</div>
+	</template>
+	<!-- menu组件 -->
+	<template id="menu">
+		<ul class='mainMenu'>
+			<li v-for="(item,i) in menus">
+				<span @click="toggle(i)" v-text='item.name' ></span>
+				<transition name='slide'>
+				<ul class='subMenu' v-show='item.isShow'>
+					<li v-for='sub in item.subMenus' v-text='sub.name' @click='addTab(sub)'></li>
+				</ul>
+				</transition>
+			</li>
+		</ul>
+	</template>
+	<!-- tabs组件 -->
+	<template id='tabs'>
+		<div class='tabs'>
+			<ul class='tab-title'>
+				<li v-for="(item,index) in $store.state.tabs.titles" :class="{active:index==$store.state.tabs.curIndex}">
+					<span @click='delTab(index)'>×</span>
+					<label v-text="item" @click='$store.commit("tabs/toggleTab",index)'></label>
+				</li>
+			</ul>
+			<div class='tab-content'>
+				<div v-for="(item,index) in $store.state.grid.grids" v-show='index==$store.state.tabs.curIndex' :key="item">
+					<grid :grid-name='item' ></grid>
+				</div>
+				
+			</div>
+		</div>
+	</template>
+	
+
+	<!-- vue全家桶引入 -->
+	<script src='js/vue.js'></script>
+	<script src='js/vuex.js'></script>
+	<script src='js/vue-resource.js'></script>
+	<script>Vue.http.options.emulateJSON=true;</script>
+	<!-- Vuex数据仓库引入 -->
+	<script src='store/alert-store.js'></script>
+	<script src='store/grid-store.js'></script>
+	<script src='store/tabs-store.js'></script>
+	<!-- <script src='store/menu-store.js'></script> -->
+	<script src='store/store.js'></script>
+	<!-- vue组件相关js引入 -->
+	<script src='components/popwindow/popwindow.js'></script>
+	<script src='components/alert/alert.js'></script>
+	<script src='components/edit/edit.js'></script>
+	<script src='components/grid/grid.js'></script>
+	<script src='components/menu/menu.js'></script>
+	<script src='components/tabs/tabs.js'></script>
+
+	<script src='js/index.js'></script>
+	<script>
+		var vm=new Vue({
+			el:'#app',
+			store:store
+		});
+	</script>
+</body>
+</html>
